@@ -3,6 +3,7 @@ using UnityEngine;
 using TMPro;
 
 // TODO: Undo non ripristina il denaro — OnRemoveBuilding non restituisce il costo dell'edificio
+// Fixare il sistema Observer leggi il documento pdf
 
 public class City : MonoBehaviour
 {
