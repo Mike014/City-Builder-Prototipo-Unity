@@ -83,6 +83,7 @@ Il progetto è in refactoring attivo con l'obiettivo di applicare progressivamen
 - **Refactoring e pattern:** applicazione sistematica di game programming pattern (Command, State Machine, Object Pooling, Event Bus) sull'intera codebase
 - **Sistema di salvataggio:** implementazione di un sistema di persistenza robusto basato su file JSON e/o `PlayerPrefs`, con serializzazione dello stato completo della città tra una sessione e l'altra
 - **Agenti autonomi (NPC/IA):** popolamento della città con personaggi che si muovono tra edifici tramite NavMesh, simulando flussi lavorativi e residenziali
+- **Menu Dinamico**
 
 ---
 
