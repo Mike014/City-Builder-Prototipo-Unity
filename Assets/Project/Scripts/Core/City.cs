@@ -1,8 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-using System.Globalization;
+
+// TODO: Undo non ripristina il denaro — OnRemoveBuilding non restituisce il costo dell'edificio
 
 public class City : MonoBehaviour
 {
