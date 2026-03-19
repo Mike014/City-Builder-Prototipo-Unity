@@ -18,6 +18,7 @@ Le funzionalità implementate e funzionanti includono:
 - Rilevamento tile tramite raycast sul piano di gioco
 - UI con statistiche aggiornate in tempo reale
 - Quattro tipologie di edifici: Casa, Fabbrica, Fattoria, Strada
+- Undo/Redo del piazzamento edifici tramite Command Pattern (Ctrl+Z)
 
 > **Nota sul Road asset:** L'edificio Strada è implementato come un piano 3D in scala `(0.1, 0.1, 0.1)` per adattarsi esattamente alla dimensione di un tile della griglia. Non contribuisce a popolazione, lavoro o cibo, ma fa parte della logica di espansione urbana e ha un `costPerTurn` associato come qualsiasi altra struttura.
 
@@ -67,7 +68,7 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 | **ScriptableObject (Data Container)** | `CameraSettings`, `CitySettings`, `BuildingPreset` — separazione dati/comportamento |
 | **Single Responsibility** | `CameraController` — zoom, rotazione e movimento isolati in metodi privati |
 | **Observer (implicito)** | `City.OnPlaceBuilding` / `City.OnRemoveBuilding` — eventi di sistema notificati al gestore centrale |
-
+| **Command** | `PlaceBuildingCommand`, `ICommand`, `BuildingPlacement` — undo/redo del piazzamento con stack |
 ---
 
 ## Limitazioni note

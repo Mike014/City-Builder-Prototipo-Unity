@@ -1,19 +1,22 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BuildingPlacement : MonoBehaviour
 {
+    // --- Campi privati ---
     private bool _currentlyPlacing;
     private bool _currentlyBulldozing;
-
     private BuildingPreset _curBuildingPreset;
-
     private float _indicatorUpdateRate = .05f;
     private float _lastUpdateTime;
     private Vector3 _curIndicatorPos;
+    private Stack<ICommand> _undoStack = new Stack<ICommand>();
 
+    // --- Campi pubblici ---
     public GameObject placementIndicator;
     public GameObject bulldozerIndicator;
 
+    // --- Unity Lifecycle ---
     void Update()
     {
         if (_currentlyPlacing)
@@ -27,12 +30,18 @@ public class BuildingPlacement : MonoBehaviour
         {
             PlaceBuilding();
         }
-        else if ((Input.GetMouseButtonDown(0) && _currentlyBulldozing))
+        else if (Input.GetMouseButtonDown(0) && _currentlyBulldozing)
         {
             Bulldoze();
         }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            UndoLastCommand();
+        }
     }
 
+    // --- Metodi pubblici ---
     public void BeginNewBuildingPlacement(BuildingPreset preset)
     {
         // check money
@@ -42,7 +51,7 @@ public class BuildingPlacement : MonoBehaviour
         placementIndicator.transform.position = new Vector3(0, -99, 0);
     }
 
-    void CancelBuildingPlacement()
+    public void CancelBuildingPlacement()
     {
         _currentlyPlacing = false;
         placementIndicator.SetActive(false);
@@ -55,13 +64,24 @@ public class BuildingPlacement : MonoBehaviour
         bulldozerIndicator.transform.position = new Vector3(0, -99, 0);
     }
 
-    void PlaceBuilding()
+    public void PlaceBuilding()
     {
+        // 1. Istanzia l'edificio
         GameObject buildingObj = Instantiate(_curBuildingPreset.prefab, _curIndicatorPos, Quaternion.identity);
-        City.instance.OnPlaceBuilding(buildingObj.GetComponent<Building>());
+        // 2. Prendi il componente Building
+        Building building = buildingObj.GetComponent<Building>();
+        // 3. Crea il command con i tre dati
+        PlaceBuildingCommand placeBuildingCommand = new PlaceBuildingCommand(_curBuildingPreset, _curIndicatorPos, building);
+        // 4. Esegui
+        placeBuildingCommand.Execute();
+        // 5. Push command to undo stack
+        _undoStack.Push(placeBuildingCommand);
+        Debug.Log($"Stack size: {_undoStack.Count}");
+
         CancelBuildingPlacement();
     }
 
+    // --- Metodi privati ---
     private void PressCancelBuildingPlacement()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -86,7 +106,7 @@ public class BuildingPlacement : MonoBehaviour
         }
     }
 
-    void Bulldoze()
+    private void Bulldoze()
     {
         Building buildingToDestroy = City.instance.buildings.Find(x => x.transform.position == _curIndicatorPos);
 
@@ -95,5 +115,14 @@ public class BuildingPlacement : MonoBehaviour
             City.instance.OnRemoveBuilding(buildingToDestroy);
         }
     }
-}
 
+    private void UndoLastCommand()
+    {
+        if (_undoStack.Count > 0)
+        {
+            ICommand command = _undoStack.Pop();
+            command.Undo();
+            Debug.Log($"Stack size: {_undoStack.Count}");
+        }
+    }
+}
