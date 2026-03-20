@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a1b84da83554b84c91825f06daa6a2a, type: 3}
   m_Name: City Settings
   m_EditorClassIdentifier: 
-  money: 200
+  money: 50
   day: 1
-  curPopulation: 0
+  curPopulation: 1
   curJobs: 0
   curFood: 0
-  maxPopulation: 0
-  maxJobs: 25
-  incomePerJobs: 10
+  maxPopulation: 10
+  maxJobs: 20
+  incomePerJobs: 5

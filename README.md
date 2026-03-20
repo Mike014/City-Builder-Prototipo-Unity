@@ -2,7 +2,7 @@
 
 ## Descrizione del progetto
 
-City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Age of Empires* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
+City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Edge of Empire* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
 
 Il progetto è attualmente in uno **stadio prematuro ma funzionante**: la pipeline core di piazzamento edifici, gestione risorse e controllo camera è operativa. L'obiettivo a lungo termine è espandere il sistema verso simulazioni più complesse, con la possibile introduzione di agenti autonomi (NPC/IA) che popolino e animino la città in modo procedurale.
 
@@ -20,6 +20,7 @@ Le funzionalità implementate e funzionanti includono:
 - Quattro tipologie di edifici: Casa, Fabbrica, Fattoria, Strada
 - Undo del piazzamento edifici tramite Command Pattern (`Ctrl+Z`)
 - Architettura Event Bus operativa — `City`, `EconomySystem`, `PopulationSystem`, `UIManager` comunicano tramite eventi senza accoppiamento diretto
+- Griglia edifici basata su `Dictionary<Vector3Int, Building>` — lookup O(1) per bulldoze e piazzamento
 
 > **Nota sul Road asset:** L'edificio Strada è implementato come un piano 3D in scala `(0.1, 0.1, 0.1)` per adattarsi esattamente alla dimensione di un tile della griglia. Non contribuisce a popolazione, lavoro o cibo, ma fa parte della logica di espansione urbana e ha un `costPerTurn` associato come qualsiasi altra struttura.
 
@@ -48,19 +49,19 @@ Componente attaccato a ogni prefab edificio istanziato in scena. Contiene un rif
 ScriptableObject che definisce le proprietà di ogni tipo di edificio: costo di acquisto, costo di mantenimento per turno, prefab associato e contributi alle risorse della città (popolazione, posti di lavoro, produzione di cibo). I valori possono essere positivi o negativi a seconda della natura dell'edificio — una fattoria produce cibo, una casa aumenta la capacità abitativa, una fabbrica genera posti di lavoro.
 
 **`BuildingPlacement.cs`**
-Gestisce l'intera pipeline di piazzamento e demolizione. Internamente separa le responsabilità in metodi dedicati: `PlacementIndicator()` aggiorna la posizione del cursore visivo ogni 0.05 secondi (throttling intenzionale per ottimizzare le performance), `PlaceBuilding()` istanzia il prefab e notifica il sistema città, `Bulldoze()` cerca l'edificio nella lista tramite lambda e lo rimuove. L'annullamento del piazzamento è isolato in `PressCancelBuildingPlacement()` e viene invocato solo quando `_currentlyPlacing` è attivo.
+Gestisce l'intera pipeline di piazzamento e demolizione. Internamente separa le responsabilità in metodi dedicati: `PlacementIndicator()` aggiorna la posizione del cursore visivo ogni 0.05 secondi (throttling intenzionale per ottimizzare le performance), `PlaceBuilding()` istanzia il prefab e notifica il sistema città, `Bulldoze()` esegue lookup O(1) sul Dictionary tramite `TryGetValue`. L'annullamento del piazzamento è isolato in `PressCancelBuildingPlacement()` e viene invocato solo quando `_currentlyPlacing` è attivo.
 
 **`CameraController.cs`**
 Gestisce tre comportamenti distinti separati in metodi privati: `Zooming()` per lo scroll della rotella del mouse con clamping, `Rotating()` per la rotazione tenendo premuto il tasto destro del mouse, `Moving()` per il movimento WASD relativo all'orientamento della camera (la componente Y del vettore forward viene azzerata e normalizzata per garantire movimento esclusivamente sul piano orizzontale, indipendentemente dall'inclinazione della camera). Tutti i parametri sono letti da `CameraSettings`.
 
 **`City.cs`**
-Singleton coordinatore della simulazione. Dopo il refactoring non calcola più direttamente le risorse — delega a `EconomySystem` e `PopulationSystem` tramite dependency injection, e pubblica lo stato aggiornato sull'`EventBus` tramite il metodo `PublishCityState()`. Gestisce ancora `OnPlaceBuilding` e `OnRemoveBuilding` come punto di ingresso per le modifiche alla griglia.
+Singleton coordinatore della simulazione. Mantiene la griglia degli edifici come `Dictionary<Vector3Int, Building>` per lookup O(1). Delega i calcoli a `EconomySystem` e `PopulationSystem` tramite dependency injection, e pubblica lo stato aggiornato sull'`EventBus` tramite `PublishCityState()`.
 
 **`EconomySystem.cs`**
-Sistema dedicato al calcolo di denaro e lavoro. Riceve la lista degli edifici come parametro ed emette i risultati sull'`EventBus`. Separato da `City.cs` per rispettare il Single Responsibility Principle.
+Sistema dedicato al calcolo di denaro e lavoro. Accetta `IEnumerable<Building>` per disaccoppiarsi dalla struttura dati concreta. Pubblica i risultati sull'`EventBus`.
 
 **`PopulationSystem.cs`**
-Sistema dedicato al calcolo di popolazione e cibo. Stessa struttura di `EconomySystem` — riceve la lista edifici, calcola, pubblica sull'`EventBus`.
+Sistema dedicato al calcolo di popolazione e cibo. Stessa struttura di `EconomySystem` — accetta `IEnumerable<Building>`, calcola, pubblica sull'`EventBus`.
 
 **`EventBus.cs`**
 Canale di messaggistica statico che implementa l'Observer Pattern. Espone l'evento `OnResourceUpdated` a cui i sistemi si iscrivono. Publisher e Subscriber non si conoscono — comunicano solo tramite il Bus.
@@ -100,7 +101,9 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 
 ## Bug noti
 
-**Sfasamento dello scale degli asset dopo il refactoring:** a seguito delle modifiche architetturali, gli asset degli edifici (Casa, Fabbrica, Fattoria, Strada) hanno subito uno sfasamento delle proporzioni in scena. Il problema è stato isolato su un branch separato e deve essere corretto prima del merge. Causa probabile: modifica ai valori di scala nei prefab durante il refactoring della scena.
+**Snapping edifici non allineato alla griglia:** gli asset vengono posizionati a metà tra due tile invece che al centro della casella. Il problema è nel calcolo della posizione in `Selector.cs` o nel modo in cui `_curIndicatorPos` viene applicato all'Instantiate in `BuildingPlacement.cs`. Da correggere prima di procedere con nuove funzionalità di piazzamento.
+
+**Sfasamento dello scale degli asset dopo il refactoring:** a seguito delle modifiche architetturali, gli asset degli edifici hanno subito uno sfasamento delle proporzioni in scena. Il problema è stato isolato su un branch separato e deve essere corretto prima del merge.
 
 **Undo non ripristina il denaro:** `OnRemoveBuilding` rimuove l'edificio dalla scena ma non restituisce il costo al giocatore. Il `PlaceBuildingCommand` deve essere aggiornato per includere il ripristino di `_citySettings.money += _preset.cost` nell'`Undo()`.
 

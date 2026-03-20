@@ -24,7 +24,7 @@ public class PopulationSystem : MonoBehaviour
     }
 
     // Ricalcola da zero la disponibilità totale di cibo sommando l'output di tutti gli edifici.
-    void CalculateFood(List<Building> buildings)
+    void CalculateFood(IEnumerable<Building> buildings) 
     {
         _citySettings.curFood = 0;
 
@@ -34,7 +34,7 @@ public class PopulationSystem : MonoBehaviour
         }
     }
 
-    public void Calculate(List<Building> buildings)
+    public void Calculate(IEnumerable<Building> buildings)
     {
         CalculateFood(buildings);
         CalculatePopulation();

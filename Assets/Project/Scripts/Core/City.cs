@@ -11,7 +11,8 @@ public class City : MonoBehaviour
 {
     [Header("City State")]
     // Lista dinamica che traccia tutti gli edifici attualmente presenti in scena.
-    public List<Building> buildings = new List<Building>();
+    // public List<Building> buildings = new List<Building>();
+    public Dictionary<Vector3Int, Building> grid = new Dictionary<Vector3Int, Building>();
 
     // Riferimento allo ScriptableObject che funge da database dei dati correnti.
     [SerializeField] private CitySettings _citySettings;
@@ -42,8 +43,10 @@ public class City : MonoBehaviour
         _citySettings.money -= building.preset.cost;
         _citySettings.maxPopulation += building.preset.population;
         _citySettings.maxJobs += building.preset.jobs;
-
-        buildings.Add(building);
+        
+        // grid[posizione] = building;
+        // buildings.Add(building);
+        grid[Vector3Int.RoundToInt(building.transform.position)] = building;
 
         PublishCityState();
     }
@@ -55,7 +58,7 @@ public class City : MonoBehaviour
         _citySettings.maxPopulation -= building.preset.population;
         _citySettings.maxJobs -= building.preset.jobs;
 
-        buildings.Remove(building);
+        grid.Remove(Vector3Int.RoundToInt(building.transform.position));
 
         PublishCityState();
 
@@ -66,8 +69,8 @@ public class City : MonoBehaviour
     public void EndTurn()
     {
         _citySettings.day++;
-        _economySystem.Calculate(buildings);
-        _populationSystem.Calculate(buildings);
+        _economySystem.Calculate(grid.Values);
+        _populationSystem.Calculate(grid.Values);
 
         PublishCityState();
     }

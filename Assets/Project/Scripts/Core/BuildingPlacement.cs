@@ -108,11 +108,11 @@ public class BuildingPlacement : MonoBehaviour
 
     private void Bulldoze()
     {
-        Building buildingToDestroy = City.instance.buildings.Find(x => x.transform.position == _curIndicatorPos);
+        Vector3Int targetPos = Vector3Int.RoundToInt(_curIndicatorPos);
 
-        if (buildingToDestroy != null)
+        if (City.instance.grid.TryGetValue(targetPos, out Building building))
         {
-            City.instance.OnRemoveBuilding(buildingToDestroy);
+            City.instance.OnRemoveBuilding(building);
         }
     }
 
