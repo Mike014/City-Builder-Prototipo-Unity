@@ -71,6 +71,15 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 
 ---
 
+## Riferimenti e Studi
+
+- [Game Programming Patterns](https://docs.google.com/document/d/1Ou3lJYsV_q99P-ejsP6zAVnZnWSGQ4Sa6VxBHPQYfYY/edit?usp=sharing)
+- [SimCity One Page Documents](https://docs.google.com/document/d/1E2Y2-9Mp13S2S3KDdb2Ax4E8VpKy4Lu5e1K5XM3rtX4/edit?usp=sharing)
+- [Citystate II Postmortem]()
+- [Game Mechanics — Internal Economy]()
+
+---
+
 ## Limitazioni note
 
 **Reset manuale dei dati tra una sessione e l'altra:** `CitySettings` è uno ScriptableObject. In fase di prototipazione i valori dinamici (denaro, popolazione, cibo, giorno) vengono modificati a runtime ma non vengono persistiti al riavvio. È necessario resettarli manualmente dall'Inspector prima di ogni nuova sessione di test. Un sistema di salvataggio dedicato è pianificato tra gli sviluppi futuri.
