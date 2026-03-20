@@ -2,7 +2,7 @@
 
 ## Descrizione del progetto
 
-City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Age of Empires* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
+City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Edge of Empire* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
 
 Il progetto è attualmente in uno **stadio prematuro ma funzionante**: la pipeline core di piazzamento edifici, gestione risorse e controllo camera è operativa. L'obiettivo a lungo termine è espandere il sistema verso simulazioni più complesse, con la possibile introduzione di agenti autonomi (NPC/IA) che popolino e animino la città in modo procedurale.
 
@@ -18,7 +18,7 @@ Le funzionalità implementate e funzionanti includono:
 - Rilevamento tile tramite raycast sul piano di gioco
 - UI con statistiche aggiornate in tempo reale
 - Quattro tipologie di edifici: Casa, Fabbrica, Fattoria, Strada
-- Undo/Redo del piazzamento edifici tramite Command Pattern (Ctrl+Z)
+- Undo del piazzamento edifici tramite Command Pattern (`Ctrl+Z`)
 
 > **Nota sul Road asset:** L'edificio Strada è implementato come un piano 3D in scala `(0.1, 0.1, 0.1)` per adattarsi esattamente alla dimensione di un tile della griglia. Non contribuisce a popolazione, lavoro o cibo, ma fa parte della logica di espansione urbana e ha un `costPerTurn` associato come qualsiasi altra struttura.
 
@@ -68,7 +68,7 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 | **ScriptableObject (Data Container)** | `CameraSettings`, `CitySettings`, `BuildingPreset` — separazione dati/comportamento |
 | **Single Responsibility** | `CameraController` — zoom, rotazione e movimento isolati in metodi privati |
 | **Observer (implicito)** | `City.OnPlaceBuilding` / `City.OnRemoveBuilding` — eventi di sistema notificati al gestore centrale |
-| **Command** | `PlaceBuildingCommand`, `ICommand`, `BuildingPlacement` — undo/redo del piazzamento con stack |
+
 ---
 
 ## Limitazioni note
@@ -81,10 +81,13 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 
 Il progetto è in refactoring attivo con l'obiettivo di applicare progressivamente pattern di programmazione consolidati. Gli sviluppi pianificati per step successivi sono:
 
-- **Refactoring e pattern:** applicazione sistematica di game programming pattern (Command, State Machine, Object Pooling, Event Bus) sull'intera codebase
+- **Refactoring e pattern:** applicazione sistematica di game programming pattern (Command, State Machine, Object Pooling, Event Bus) sull'intera codebase — priorità assoluta prima di aggiungere nuove funzionalità
 - **Sistema di salvataggio:** implementazione di un sistema di persistenza robusto basato su file JSON e/o `PlayerPrefs`, con serializzazione dello stato completo della città tra una sessione e l'altra
+- **Rotazione degli edifici durante il piazzamento:** possibilità di ruotare l'asset (Casa, Fabbrica, Fattoria) su se stesso prima di confermarne la posizione sul tile, come avviene nei city builder moderni — implementabile tramite input dedicato che modifica `Quaternion` durante la fase di preview
+- **Menu dinamico con UI responsiva:** toolbar degli edifici riprogettata con layout adattivo, tooltip informativi per ogni edificio e feedback visivo sulle risorse disponibili
+- **Ciclo giorno/notte dinamico:** sistema di illuminazione procedurale che simula il passaggio del tempo modificando la `Directional Light` e il `Skybox` in sincronia con i turni di gioco
+- **Audio design:** integrazione di feedback sonori per piazzamento, demolizione e transizioni di giorno — da costruire su un'architettura audio pulita prima dell'implementazione
 - **Agenti autonomi (NPC/IA):** popolamento della città con personaggi che si muovono tra edifici tramite NavMesh, simulando flussi lavorativi e residenziali
-- **Menu Dinamico**
 
 ---
 
