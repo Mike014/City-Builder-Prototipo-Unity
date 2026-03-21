@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   money: 200
   day: 1
-  curPopulation: 0
+  curPopulation: 2
   curJobs: 0
   curFood: 0
   maxPopulation: 0
-  maxJobs: 25
-  incomePerJobs: 10
+  maxJobs: 0
+  incomePerJobs: 5

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Farm
   m_EditorClassIdentifier: 
   cost: 10
-  costPerTurn: 5
+  costPerTurn: 10
   prefab: {fileID: 6220136090370239411, guid: 8a5241a8287d16d4e981cf2eb97024a6, type: 3}
-  population: 5
+  population: 0
   jobs: 10
   food: 10
