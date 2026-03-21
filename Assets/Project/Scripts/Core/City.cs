@@ -1,9 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// TODO: Undo non ripristina il denaro — OnRemoveBuilding non restituisce il costo dell'edificio
-// Fixare il sistema Observer leggi il documento pdf
-
 // Gestisce lo stato globale della città, aggiorna l'interfaccia utente 
 // e calcola l'economia a ogni fine turno.
 // Attualmente implementato con il pattern Singleton.
@@ -38,6 +35,7 @@ public class City : MonoBehaviour
 
     // Registra un nuovo edificio piazzato, aggiornando le statistiche massime e il denaro.
     // Parametro building: L'edificio appena istanziato sulla griglia.
+    // Sezione 3 : La firma ora risulta sbagliata?? 
     public void OnPlaceBuilding(Building building)
     {
         _citySettings.money -= building.preset.cost;
@@ -53,15 +51,19 @@ public class City : MonoBehaviour
 
     // Rimuove un edificio dalla simulazione, sottraendo i suoi contributi e distruggendo il GameObject.
     // Parametro building: L'edificio da demolire o rimuovere tramite Undo.
+    // Sezione 3 : La firma ora risulta sbagliata??
     public void OnRemoveBuilding(Building building)
     {
+        _citySettings.money += building.preset.cost;
         _citySettings.maxPopulation -= building.preset.population;
         _citySettings.maxJobs -= building.preset.jobs;
 
         grid.Remove(Vector3Int.RoundToInt(building.transform.position));
 
         PublishCityState();
-
+        
+        // Il problema se creo un sistema Redo() in PlaceBuildingCommand
+        // Non ho più il riferimento all'oggetto perchè è stato distrutto
         Destroy(building.gameObject);
     }
 

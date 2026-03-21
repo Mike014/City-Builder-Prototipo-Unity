@@ -2,7 +2,7 @@
 
 ## Descrizione del progetto
 
-City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Edge of Empire* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
+City Builder è un prototipo di gioco gestionale in fase di sviluppo attivo, costruito con Unity e C#. Il progetto si ispira al genere dei city builder strategici — titoli come *Anno*, *Frostpunk* o *Age of Empires* — in cui il giocatore costruisce e gestisce una città su una griglia, bilanciando risorse economiche, popolazione, lavoro e approvvigionamento alimentare.
 
 Il progetto è attualmente in uno **stadio prematuro ma funzionante**: la pipeline core di piazzamento edifici, gestione risorse e controllo camera è operativa. L'obiettivo a lungo termine è espandere il sistema verso simulazioni più complesse, con la possibile introduzione di agenti autonomi (NPC/IA) che popolino e animino la città in modo procedurale.
 
@@ -18,7 +18,9 @@ Le funzionalità implementate e funzionanti includono:
 - Rilevamento tile tramite raycast sul piano di gioco
 - UI con statistiche aggiornate in tempo reale tramite Event Bus
 - Quattro tipologie di edifici: Casa, Fabbrica, Fattoria, Strada
-- Undo del piazzamento edifici tramite Command Pattern (`Ctrl+Z`)
+- Undo del piazzamento edifici tramite Command Pattern (`Z`)
+- Redo del piazzamento edifici (`Ctrl+Y`)
+- Redo del bulldoze (`Ctrl+Y`) — ripristina l'edificio demolito
 - Architettura Event Bus operativa — `City`, `EconomySystem`, `PopulationSystem`, `UIManager` comunicano tramite eventi senza accoppiamento diretto
 - Griglia edifici basata su `Dictionary<Vector3Int, Building>` — lookup O(1) per bulldoze e piazzamento
 
@@ -49,7 +51,7 @@ Componente attaccato a ogni prefab edificio istanziato in scena. Contiene un rif
 ScriptableObject che definisce le proprietà di ogni tipo di edificio: costo di acquisto, costo di mantenimento per turno, prefab associato e contributi alle risorse della città (popolazione, posti di lavoro, produzione di cibo). I valori possono essere positivi o negativi a seconda della natura dell'edificio — una fattoria produce cibo, una casa aumenta la capacità abitativa, una fabbrica genera posti di lavoro.
 
 **`BuildingPlacement.cs`**
-Gestisce l'intera pipeline di piazzamento e demolizione. Internamente separa le responsabilità in metodi dedicati: `PlacementIndicator()` aggiorna la posizione del cursore visivo ogni 0.05 secondi (throttling intenzionale per ottimizzare le performance), `PlaceBuilding()` istanzia il prefab e notifica il sistema città, `Bulldoze()` esegue lookup O(1) sul Dictionary tramite `TryGetValue`. L'annullamento del piazzamento è isolato in `PressCancelBuildingPlacement()` e viene invocato solo quando `_currentlyPlacing` è attivo.
+Gestisce l'intera pipeline di piazzamento e demolizione. Mantiene due stack separati — `_undoStack` per le azioni eseguite e `_redoStack` per le azioni annullate. `PlaceBuilding()` crea un `PlaceBuildingCommand` data-driven (preset + posizione, nessun riferimento al MonoBehaviour) e lo pusha nell'`_undoStack`. `Bulldoze()` esegue lookup O(1) sul Dictionary tramite `TryGetValue`, crea un comando e lo pusha nel `_redoStack` per permettere il ripristino tramite `Ctrl+Y`.
 
 **`CameraController.cs`**
 Gestisce tre comportamenti distinti separati in metodi privati: `Zooming()` per lo scroll della rotella del mouse con clamping, `Rotating()` per la rotazione tenendo premuto il tasto destro del mouse, `Moving()` per il movimento WASD relativo all'orientamento della camera (la componente Y del vettore forward viene azzerata e normalizzata per garantire movimento esclusivamente sul piano orizzontale, indipendentemente dall'inclinazione della camera). Tutti i parametri sono letti da `CameraSettings`.
@@ -71,6 +73,9 @@ Struct C# che trasporta i dati delle risorse aggiornate negli eventi. Viene cost
 
 **`UIManager.cs`**
 Si iscrive a `EventBus.OnResourceUpdated` in `OnEnable()` e si deregistra in `OnDisable()`. Aggiorna il testo delle statistiche ogni volta che riceve un evento. Completamente disaccoppiato da `City.cs`.
+
+**`PlaceBuildingCommand.cs`**
+Implementazione data-driven del Command Pattern. Salva solo `BuildingPreset` e `Vector3Int` — nessun riferimento al MonoBehaviour istanziato. `Execute()` istanzia il prefab da zero tramite `Object.Instantiate`, permettendo un Redo corretto senza `MissingReferenceException`. `Undo()` cerca l'edificio nel Dictionary tramite `TryGetValue` e lo rimuove.
 
 **`Selector.cs`**
 Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un raggio dalla camera verso un piano matematico orizzontale all'altezza zero della scena. Il punto di intersezione viene traslato di `-0.5` sull'asse X e arrotondato con `Mathf.CeilToInt` per ottenere coordinate intere allineate alla griglia. Se il cursore è sopra un elemento UI, restituisce un vettore sentinella `(0, -99, 0)` che i sistemi a valle usano per ignorare l'input.
@@ -105,7 +110,7 @@ Singleton responsabile del rilevamento del tile sotto il cursore. Proietta un ra
 
 **Sfasamento dello scale degli asset dopo il refactoring:** a seguito delle modifiche architetturali, gli asset degli edifici hanno subito uno sfasamento delle proporzioni in scena. Il problema è stato isolato su un branch separato e deve essere corretto prima del merge.
 
-**Undo non ripristina il denaro:** `OnRemoveBuilding` rimuove l'edificio dalla scena ma non restituisce il costo al giocatore. Il `PlaceBuildingCommand` deve essere aggiornato per includere il ripristino di `_citySettings.money += _preset.cost` nell'`Undo()`.
+**Semantica Undo/Redo del bulldoze non standard:** il bulldoze pusha direttamente nel `_redoStack` invece che nell'`_undoStack`, rompendo la semantica canonica del Command Pattern. Soluzione futura: introdurre un `BulldozeCommand` dedicato con `Execute()` e `Undo()` invertiti rispetto a `PlaceBuildingCommand`.
 
 **`UIManager` legge ancora da `_citySettings`:** `UpdateStatText` riceve `ResourceAmount` ma non la usa — legge direttamente dallo ScriptableObject. Da completare per chiudere il disaccoppiamento dalla UI.
 
