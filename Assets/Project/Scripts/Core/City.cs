@@ -79,13 +79,15 @@ public class City : MonoBehaviour
 
     private void PublishCityState()
     {
-        Debug.Log("PublishCityState chiamato");
         EventBus.Publish(new ResourceAmount
         {
+            day = _citySettings.day,
             money = _citySettings.money,
             jobs = _citySettings.curJobs,
+            maxJobs = _citySettings.maxJobs,
             food = _citySettings.curFood,
-            population = _citySettings.curPopulation
+            population = _citySettings.curPopulation,
+            maxPopulation = _citySettings.maxPopulation
         });
     }
 }

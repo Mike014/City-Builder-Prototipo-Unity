@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class BuildingPlacement : MonoBehaviour
 {
@@ -27,7 +28,7 @@ public class BuildingPlacement : MonoBehaviour
 
         PlacementIndicator();
 
-        if (Input.GetMouseButtonDown(0) && _currentlyPlacing)
+        if (Input.GetMouseButtonDown(0) && _currentlyPlacing && !EventSystem.current.IsPointerOverGameObject())
         {
             PlaceBuilding();
         }
@@ -122,9 +123,10 @@ public class BuildingPlacement : MonoBehaviour
 
         if (City.instance.grid.TryGetValue(targetPos, out Building building))
         {
-            PlaceBuildingCommand command = new PlaceBuildingCommand(building.preset, targetPos);
-            City.instance.OnRemoveBuilding(building);
-            _redoStack.Push(command);
+            BulldozeCommand command = new BulldozeCommand(building.preset, targetPos);
+            command.Execute();
+            _undoStack.Push(command);
+            _redoStack.Clear();
         }
     }
 
@@ -150,8 +152,4 @@ public class BuildingPlacement : MonoBehaviour
     }
 }
 
-// NOTA ARCHITETTURALE: il bulldoze pusha direttamente nel _redoStack invece che nell'_undoStack.
-// Questo rompe la semantica standard del Command Pattern (undo = annulla azione eseguita).
-// Soluzione futura: separare lo stack del bulldoze da quello del piazzamento,
-// o introdurre un BulldozeCommand dedicato con Execute() e Undo() invertiti.
 

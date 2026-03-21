@@ -5,9 +5,6 @@ public class EconomySystem : MonoBehaviour
 {
     [SerializeField] private CitySettings _citySettings;
 
-    // TODO: ricevere la lista buildings da City.cs invece di mantenerla autonomamente
-    // per evitare duplicazione e rischio di desincronizzazione
-
     void CalculateMoney(IEnumerable<Building> buildings)
     {
         _citySettings.money += _citySettings.curJobs * _citySettings.incomePerJobs;
@@ -27,11 +24,5 @@ public class EconomySystem : MonoBehaviour
     {
         CalculateMoney(buildings);
         CalculateJobs();
-        EventBus.Publish(new ResourceAmount
-        {
-            money = _citySettings.money,
-            jobs = _citySettings.curJobs,
-            food = 0
-        });
     }
 }

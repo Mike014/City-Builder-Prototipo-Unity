@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 995e4f0190437f3439058b8757852dfd, type: 3}
   m_Name: House
   m_EditorClassIdentifier: 
-  cost: 10
-  costPerTurn: 5
+  cost: 5
+  costPerTurn: 7
   prefab: {fileID: 6542294551736479559, guid: f2b90f642ab7fcd4b88c70086c8163d1, type: 3}
-  population: 10
+  population: 4
   jobs: 0
   food: 0

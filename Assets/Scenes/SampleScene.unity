@@ -1318,7 +1318,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 884dca2f42c63974b8d86d87297c8b33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildings: []
   _citySettings: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
   _economySystem: {fileID: 1008623533}
   _populationSystem: {fileID: 1008623532}
