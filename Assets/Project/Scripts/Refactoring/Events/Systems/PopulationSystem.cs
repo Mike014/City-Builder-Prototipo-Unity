@@ -4,58 +4,41 @@ using System.Collections.Generic;
 
 public class PopulationSystem : MonoBehaviour
 {
-    // Riferimento allo ScriptableObject che funge da database dei dati correnti.
-    [SerializeField] private CitySettings _citySettings;
-
     // Aggiorna la popolazione in base alla disponibilità di cibo, simulando crescita o decrescita.
-    void CalculatePopulation()
+    void CalculatePopulation(CityRuntimeState state)
     {
         // Se c'è abbastanza cibo per sfamare tutti e c'è spazio abitativo
-        if (_citySettings.curFood >= _citySettings.curPopulation && _citySettings.curPopulation < _citySettings.maxPopulation)
+        if (state.curFood >= state.curPopulation && state.curPopulation < state.maxPopulation)
         {
-            _citySettings.curFood -= _citySettings.curPopulation / 4;
-            _citySettings.curPopulation = Mathf.Min(_citySettings.curPopulation + (_citySettings.curFood / 4), _citySettings.maxPopulation);
+            state.curFood -= state.curPopulation / 4;
+            state.curPopulation = Mathf.Min(state.curPopulation + (state.curFood / 4), state.maxPopulation);
         }
         // Se il cibo non basta, la popolazione cala di 1 per turno (carestia graduale)
-        else if (_citySettings.curFood < _citySettings.curPopulation)
+        else if (state.curFood < state.curPopulation)
         {
-            _citySettings.curPopulation = Mathf.Max(0, _citySettings.curPopulation - 1);
+            state.curPopulation = Mathf.Max(0, state.curPopulation - 1);
         }
     }
 
     // Ricalcola da zero la disponibilità totale di cibo sommando l'output di tutti gli edifici.
-    void CalculateFood(IEnumerable<Building> buildings)
+    void CalculateFood(IEnumerable<Building> buildings, CityRuntimeState state)
     {
-        _citySettings.curFood = 0;
+        state.curFood = 0;
 
         foreach (Building building in buildings)
         {
             IResourceSource source = building.GetComponent<IResourceSource>();
             if (source != null && source.TryProvideResource(out int amount))
             {
-                _citySettings.curFood += amount;
+                state.curFood += amount;
             }
         }
     }
 
-    public void Calculate(IEnumerable<Building> buildings)
+    public void Calculate(IEnumerable<Building> buildings, CityRuntimeState state, CityConfig config)
     {
-        CalculateFood(buildings);
-        CalculatePopulation();
+        CalculateFood(buildings, state);
+        CalculatePopulation(state);
     }
-    
-    // TODO: distribuzione attualmente senza impatto sul gameplay.
-    // Preparatoria per il sistema di agenti — gli NPC preleveranno
-    // cibo dalle IResourceSink invece di leggere da CitySettings.
-    // private void DistributeFood(IEnumerable<Building> buildings)
-    // {
-    //     foreach (Building building in buildings)
-    //     {
-    //         IResourceSink sink = building.GetComponent<IResourceSink>();
-    //         if (sink != null && _citySettings.curFood > 0)
-    //         {
-    //             sink.ReceiveResource(_citySettings.curFood);
-    //         }
-    //     }
-    // }
 }
+    

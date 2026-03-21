@@ -3,26 +3,24 @@ using System.Collections.Generic;
 
 public class EconomySystem : MonoBehaviour
 {
-    [SerializeField] private CitySettings _citySettings;
-
-    void CalculateMoney(IEnumerable<Building> buildings)
+    void CalculateMoney(IEnumerable<Building> buildings, CityRuntimeState state, CityConfig config)
     {
-        _citySettings.money += _citySettings.curJobs * _citySettings.incomePerJobs;
+        state.money += state.curJobs * config.incomePerJobs;
 
         foreach (Building building in buildings)
         {
-            _citySettings.money -= building.preset.costPerTurn;
+            state.money -= building.preset.costPerTurn;
         }
     }
 
-    void CalculateJobs()
+    void CalculateJobs(CityRuntimeState state)
     {
-        _citySettings.curJobs = Mathf.Min(_citySettings.curPopulation, _citySettings.maxJobs);
+        state.curJobs = Mathf.Min(state.curPopulation, state.maxJobs);
     }
 
-    public void Calculate(IEnumerable<Building> buildings)
+    public void Calculate(IEnumerable<Building> buildings, CityRuntimeState state, CityConfig config)
     {
-        CalculateMoney(buildings);
-        CalculateJobs();
+        CalculateMoney(buildings, state, config);
+        CalculateJobs(state);
     }
 }

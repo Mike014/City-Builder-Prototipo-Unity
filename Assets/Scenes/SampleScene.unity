@@ -918,7 +918,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   statsText: {fileID: 1883588485}
-  _citySettings: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
 --- !u!1 &625223531
 GameObject:
   m_ObjectHideFlags: 0
@@ -1318,7 +1317,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 884dca2f42c63974b8d86d87297c8b33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _citySettings: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
+  _cityConfig: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
   _economySystem: {fileID: 1008623533}
   _populationSystem: {fileID: 1008623532}
 --- !u!114 &1008623529
@@ -1374,7 +1373,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5c68952e733fed4195cde61835f2f2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _citySettings: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
 --- !u!114 &1008623533
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1387,7 +1385,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c3cff17746e8e34980a1d438b23d075, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _citySettings: {fileID: 11400000, guid: 03c70762c8c8fd94faee5a0513b84a0b, type: 2}
 --- !u!1 &1055699969
 GameObject:
   m_ObjectHideFlags: 0

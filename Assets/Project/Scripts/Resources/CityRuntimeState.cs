@@ -1,8 +1,4 @@
-
-using UnityEngine;
-
-[CreateAssetMenu(fileName = "City Settings", menuName = "New City Settings")]
-public class CitySettings : ScriptableObject
+public class CityRuntimeState
 {
     public int money;
     public int day;
@@ -11,5 +7,4 @@ public class CitySettings : ScriptableObject
     public int curFood;
     public int maxPopulation;
     public int maxJobs;
-    public int incomePerJobs;
 }
