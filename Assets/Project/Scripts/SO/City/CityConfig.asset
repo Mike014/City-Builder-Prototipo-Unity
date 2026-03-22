@@ -10,13 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a1b84da83554b84c91825f06daa6a2a, type: 3}
-  m_Name: City Settings
+  m_Name: CityConfig
   m_EditorClassIdentifier: 
-  money: 200
-  day: 1
-  curPopulation: 2
-  curJobs: 0
-  curFood: 0
-  maxPopulation: 0
-  maxJobs: 0
+  startingMoney: 100
+  startingDay: 1
+  startingPopulation: 1
   incomePerJobs: 5

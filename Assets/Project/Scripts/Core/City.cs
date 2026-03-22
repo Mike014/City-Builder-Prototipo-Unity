@@ -12,7 +12,8 @@ public class City : MonoBehaviour
     public Dictionary<Vector3Int, Building> grid = new Dictionary<Vector3Int, Building>();
 
     // Riferimento allo ScriptableObject che funge da database dei dati correnti.
-    [SerializeField] private CitySettings _citySettings;
+    [SerializeField] private CityConfig _cityConfig;
+    private CityRuntimeState _state;
     [SerializeField] private EconomySystem _economySystem;
     [SerializeField] private PopulationSystem _populationSystem;
 
@@ -23,6 +24,17 @@ public class City : MonoBehaviour
     {
         // Inizializzazione del Singleton
         instance = this;
+
+        _state = new CityRuntimeState
+        {
+            money = _cityConfig.startingMoney,
+            day = _cityConfig.startingDay,
+            curPopulation = _cityConfig.startingPopulation,
+            curJobs = 0,
+            curFood = 0,
+            maxPopulation = 0,
+            maxJobs = 0
+        };
 
         // Forza l'aggiornamento iniziale della UI
         // PublishCityState();
@@ -38,10 +50,10 @@ public class City : MonoBehaviour
     // Sezione 3 : La firma ora risulta sbagliata?? 
     public void OnPlaceBuilding(Building building)
     {
-        _citySettings.money -= building.preset.cost;
-        _citySettings.maxPopulation += building.preset.population;
-        _citySettings.maxJobs += building.preset.jobs;
-        
+        _state.money -= building.preset.cost;
+        _state.maxPopulation += building.preset.population;
+        _state.maxJobs += building.preset.jobs;
+
         // grid[posizione] = building;
         // buildings.Add(building);
         grid[Vector3Int.RoundToInt(building.transform.position)] = building;
@@ -54,14 +66,14 @@ public class City : MonoBehaviour
     // Sezione 3 : La firma ora risulta sbagliata??
     public void OnRemoveBuilding(Building building)
     {
-        _citySettings.money += building.preset.cost;
-        _citySettings.maxPopulation -= building.preset.population;
-        _citySettings.maxJobs -= building.preset.jobs;
+        _state.money += building.preset.cost;
+        _state.maxPopulation -= building.preset.population;
+        _state.maxJobs -= building.preset.jobs;
 
         grid.Remove(Vector3Int.RoundToInt(building.transform.position));
 
         PublishCityState();
-        
+
         // Il problema se creo un sistema Redo() in PlaceBuildingCommand
         // Non ho più il riferimento all'oggetto perchè è stato distrutto
         Destroy(building.gameObject);
@@ -70,9 +82,9 @@ public class City : MonoBehaviour
     // Avanza di un giorno e ricalcola tutte le metriche della simulazione.
     public void EndTurn()
     {
-        _citySettings.day++;
-        _economySystem.Calculate(grid.Values);
-        _populationSystem.Calculate(grid.Values);
+        _state.day++;
+        _economySystem.Calculate(grid.Values, _state, _cityConfig);
+        _populationSystem.Calculate(grid.Values, _state, _cityConfig);
 
         PublishCityState();
     }
@@ -81,13 +93,13 @@ public class City : MonoBehaviour
     {
         EventBus.Publish(new ResourceAmount
         {
-            day = _citySettings.day,
-            money = _citySettings.money,
-            jobs = _citySettings.curJobs,
-            maxJobs = _citySettings.maxJobs,
-            food = _citySettings.curFood,
-            population = _citySettings.curPopulation,
-            maxPopulation = _citySettings.maxPopulation
+            day = _state.day,
+            money = _state.money,
+            jobs = _state.curJobs,
+            maxJobs = _state.maxJobs,
+            food = _state.curFood,
+            population = _state.curPopulation,
+            maxPopulation = _state.maxPopulation
         });
     }
 }

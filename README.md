@@ -26,6 +26,7 @@ Le funzionalità implementate e funzionanti includono:
 - Architettura a interfacce — `IResourceSource` e `IResourceSink` per edifici produttori e consumatori
 - `FarmBuilding` implementa `IResourceSource` — produce cibo con slot interno
 - `HouseBuilding` implementa `IResourceSink` — consuma cibo, preparatoria per sistema agenti
+- Separazione configurazione/stato runtime — `CityConfig` (ScriptableObject) contiene i valori iniziali, `CityRuntimeState` (POCO) gestisce lo stato mutabile a runtime
 
 > **Nota sul Road asset:** L'edificio Strada è implementato come un piano 3D in scala `(0.1, 0.1, 0.1)` per adattarsi esattamente alla dimensione di un tile della griglia. Non contribuisce a popolazione, lavoro o cibo, ma fa parte della logica di espansione urbana e ha un `costPerTurn` associato come qualsiasi altra struttura.
 
@@ -35,13 +36,17 @@ Le funzionalità implementate e funzionanti includono:
 
 Il progetto applica in modo esplicito pattern di progettazione software, con particolare attenzione alla separazione tra **dati** e **comportamento**.
 
-### ScriptableObject come contenitori di dati
+### ScriptableObject come contenitori di configurazione
 
-Una scelta progettuale distintiva rispetto all'implementazione base del corso è l'introduzione di due ScriptableObject dedicati alla configurazione:
+Una scelta progettuale distintiva rispetto all'implementazione base del corso è l'introduzione di ScriptableObject dedicati esclusivamente alla **configurazione immutabile**:
 
 **`CameraSettings`** — Contiene tutti i parametri di configurazione della camera (velocità di movimento, limiti di rotazione, range di zoom, velocità di rotazione e zoom). Separare questi dati dal MonoBehaviour permette di modificare i valori dall'Inspector senza toccare il codice, e di creare profili camera multipli facilmente.
 
-**`CitySettings`** — Contiene lo stato della città (denaro, giorno, popolazione corrente e massima, lavoro corrente e massimo, cibo, reddito per lavoro). Centralizzare questi dati in un asset separato garantisce che siano accessibili e modificabili indipendentemente dalla scena.
+**`CityConfig`** — Contiene i valori iniziali della città (`startingMoney`, `startingDay`, `startingPopulation`, `incomePerJobs`). Questi valori non vengono mai modificati a runtime — servono solo come template per inizializzare lo stato.
+
+### Stato runtime come POCO
+
+**`CityRuntimeState`** — Classe C# pura (non MonoBehaviour, non ScriptableObject) che contiene lo stato mutabile della simulazione (`money`, `day`, `curPopulation`, `curJobs`, `curFood`, `maxPopulation`, `maxJobs`). Viene istanziata in `City.Awake()` copiando i valori iniziali da `CityConfig`. Essendo un oggetto in memoria heap, viene garbage collected all'uscita dalla Play Mode — garantendo un reset automatico dello stato tra sessioni.
 
 ---
 
@@ -75,22 +80,28 @@ Implementazione dedicata del Command Pattern per la demolizione. `Execute()` rim
 Gestisce tre comportamenti distinti separati in metodi privati: `Zooming()` per lo scroll della rotella del mouse con clamping, `Rotating()` per la rotazione tenendo premuto il tasto destro del mouse, `Moving()` per il movimento WASD relativo all'orientamento della camera. Tutti i parametri sono letti da `CameraSettings`.
 
 **`City.cs`**
-Singleton coordinatore della simulazione. Mantiene la griglia degli edifici come `Dictionary<Vector3Int, Building>` per lookup O(1). Delega i calcoli a `EconomySystem` e `PopulationSystem` tramite dependency injection, e pubblica lo stato aggiornato sull'`EventBus` tramite `PublishCityState()` — unico punto di pubblicazione per eliminare i publish multipli per turno.
+Singleton coordinatore della simulazione. In `Awake()` istanzia `CityRuntimeState` copiando i valori iniziali da `CityConfig`. Mantiene la griglia degli edifici come `Dictionary<Vector3Int, Building>` per lookup O(1). Delega i calcoli a `EconomySystem` e `PopulationSystem` passando esplicitamente `_state` e `_cityConfig` come parametri (dependency injection via metodo), e pubblica lo stato aggiornato sull'`EventBus` tramite `PublishCityState()` — unico punto di pubblicazione per eliminare i publish multipli per turno.
+
+**`CityConfig.cs`**
+ScriptableObject che definisce i valori iniziali della città: `startingMoney`, `startingDay`, `startingPopulation`, `incomePerJobs`. Non viene mai modificato a runtime.
+
+**`CityRuntimeState.cs`**
+Classe POCO che contiene lo stato mutabile della simulazione. Istanziata in memoria a ogni Play, garantisce il reset automatico dello stato tra sessioni senza intervento manuale.
 
 **`EconomySystem.cs`**
-Sistema dedicato al calcolo di denaro e lavoro. Accetta `IEnumerable<Building>`. Fix applicato: rimosso `EventBus.Publish` interno che causava flash errato nella UI con `food: 0` hardcoded.
+Sistema dedicato al calcolo di denaro e lavoro. Il metodo `Calculate()` riceve `IEnumerable<Building>`, `CityRuntimeState` e `CityConfig` come parametri espliciti — nessuno stato interno, dipendenze completamente trasparenti.
 
 **`PopulationSystem.cs`**
-Sistema dedicato al calcolo di popolazione e cibo. `CalculateFood()` usa `GetComponent<IResourceSource>()` per raccogliere cibo dagli edifici produttori. `DistributeFood()` distribuisce alle `IResourceSink`. Fix applicato: carestia graduale — popolazione decresce di 1 per turno invece di crollare istantaneamente a 0.
+Sistema dedicato al calcolo di popolazione e cibo. `CalculateFood()` usa `GetComponent<IResourceSource>()` per raccogliere cibo dagli edifici produttori. Riceve `CityRuntimeState` e `CityConfig` come parametri. Fix applicato: carestia graduale — popolazione decresce di 1 per turno invece di crollare istantaneamente a 0.
 
 **`EventBus.cs`**
 Canale di messaggistica statico che implementa l'Observer Pattern. Espone l'evento `OnResourceUpdated` a cui i sistemi si iscrivono.
 
-**`ResourceAmount`**
+**`ResourceAmount.cs`**
 Struct C# aggiornata con tutti i campi necessari: `food`, `money`, `jobs`, `population`, `day`, `maxPopulation`, `maxJobs`. Viene costruita localmente e passata a `EventBus.Publish()`.
 
 **`UIManager.cs`**
-Si iscrive a `EventBus.OnResourceUpdated` in `OnEnable()` e si deregistra in `OnDisable()`. Legge ora direttamente dal parametro `ResourceAmount` — disaccoppiamento da `_citySettings` completato.
+Si iscrive a `EventBus.OnResourceUpdated` in `OnEnable()` e si deregistra in `OnDisable()`. Legge direttamente dal parametro `ResourceAmount` — disaccoppiamento completo.
 
 **`PlaceBuildingCommand.cs`**
 Implementazione data-driven del Command Pattern. Salva solo `BuildingPreset` e `Vector3Int`. `Execute()` istanzia il prefab da zero, `Undo()` cerca nel Dictionary e rimuove.
@@ -105,11 +116,12 @@ Singleton responsabile del rilevamento del tile sotto il cursore tramite raycast
 | Pattern | Dove applicato |
 |---|---|
 | **Singleton** | `City`, `Selector` — accesso globale a istanze uniche |
-| **ScriptableObject (Data Container)** | `CameraSettings`, `CitySettings`, `BuildingPreset` — separazione dati/comportamento |
+| **ScriptableObject (Config)** | `CameraSettings`, `CityConfig`, `BuildingPreset` — configurazione immutabile separata dal comportamento |
+| **POCO (Runtime State)** | `CityRuntimeState` — stato mutabile in memoria, reset automatico tra sessioni |
 | **Single Responsibility** | `CameraController`, `EconomySystem`, `PopulationSystem`, `UIManager` — responsabilità isolate per sistema |
 | **Observer / Event Bus** | `EventBus`, `UIManager` — comunicazione disaccoppiata tra sistemi tramite eventi C# |
 | **Command** | `PlaceBuildingCommand`, `BulldozeCommand`, `ICommand`, `BuildingPlacement` — undo/redo con stack |
-| **Dependency Injection** | `City` riceve `EconomySystem` e `PopulationSystem` dall'Inspector |
+| **Dependency Injection (via parametro)** | `EconomySystem.Calculate()`, `PopulationSystem.Calculate()` — ricevono stato e config esplicitamente, nessuna dipendenza nascosta |
 | **Polimorfismo / Interfacce** | `IResourceSource`, `IResourceSink` — edifici come nodi attivi della rete, preparatori per sistema agenti |
 
 ---
@@ -126,8 +138,6 @@ Singleton responsabile del rilevamento del tile sotto il cursore tramite raycast
 ## Bug noti
 
 ### Alta priorità
-
-**`CitySettings` mantiene lo stato tra sessioni di Play (Editor):** `CitySettings` è uno `ScriptableObject` con campi scritti a runtime (`money`, `curPopulation`, `curFood`, ecc.). In Unity Editor le modifiche agli asset SO persistono su disco — al secondo avvio il gioco parte con i valori della sessione precedente invece che con quelli iniziali. Fix: aggiungere un reset esplicito dei campi dinamici in `City.Awake()`, oppure separare lo stato runtime in una classe POCO non persistita.
 
 **Nessun controllo tile occupata:** `BuildingPlacement.PlaceBuilding()` non verifica se `City.instance.grid` contiene già un edificio nella posizione selezionata. È possibile sovrapporre più edifici sullo stesso tile senza errori.
 
@@ -147,15 +157,9 @@ Singleton responsabile del rilevamento del tile sotto il cursore tramite raycast
 
 ### Bassa priorità / WIP
 
-**`HouseBuilding._storeFood` senza impatto sul gameplay:** il cibo ricevuto da `ReceiveResource()` viene accumulato in `_storeFood` ma non influenza `_citySettings.curPopulation`. Logica preparatoria per il sistema di agenti — ogni residente preleverà cibo dallo slot individuale della casa invece di leggere da `CitySettings`.
+**`HouseBuilding._storeFood` senza impatto sul gameplay:** il cibo ricevuto da `ReceiveResource()` viene accumulato in `_storeFood` ma non influenza la popolazione. Logica preparatoria per il sistema di agenti — ogni residente preleverà cibo dallo slot individuale della casa.
 
 **`DistributeFood` senza impatto reale:** la distribuzione del cibo alle `IResourceSink` è implementata in `PopulationSystem` ma commentata — non altera ancora il gameplay. Da collegare al sistema di agenti.
-
----
-
-## Limitazioni note
-
-**Reset manuale dei dati tra una sessione e l'altra:** `CitySettings` è uno ScriptableObject. In fase di prototipazione i valori dinamici (denaro, popolazione, cibo, giorno) vengono modificati a runtime ma non vengono persistiti al riavvio. È necessario resettarli manualmente dall'Inspector prima di ogni nuova sessione di test. Un sistema di salvataggio dedicato è pianificato tra gli sviluppi futuri.
 
 ---
 
